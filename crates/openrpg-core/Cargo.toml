@@ -1,14 +1,10 @@
 [package]
 name = "openrpg-core"
 version = "0.1.0"
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
+edition = "2021"
 
 [dependencies]
-rand.workspace = true
-rand_chacha.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+rand = "0.8"
