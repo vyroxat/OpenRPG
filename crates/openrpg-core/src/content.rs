@@ -35,6 +35,30 @@ impl ContentEntry {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ContentPack {
+    entries: Vec<ContentEntry>,
+}
+
+impl ContentPack {
+    pub fn new(entries: Vec<ContentEntry>) -> Self {
+        Self { entries }
+    }
+
+    pub fn from_json_str(input: &str) -> Result<Self, EngineError> {
+        serde_json::from_str(input).map_err(|error| {
+            EngineError::validation(
+                "CONTENT_JSON_INVALID",
+                format!("invalid content JSON: {error}"),
+            )
+        })
+    }
+
+    pub fn entries(&self) -> &[ContentEntry] {
+        &self.entries
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct ContentRegistry {
     entries: BTreeMap<String, ContentEntry>,
@@ -60,6 +84,30 @@ impl ContentRegistry {
             .map(ContentEntry::id)
             .collect()
     }
+
+    pub(crate) fn insert(&mut self, entry: ContentEntry) -> Result<(), EngineError> {
+        let id = NamespacedId::parse(entry.id())?;
+        let key = id.as_str().to_string();
+
+        if self.entries.contains_key(&key) {
+            return Err(EngineError::validation(
+                "CONTENT_ID_DUPLICATE",
+                format!("content id {key} is already registered"),
+            ));
+        }
+
+        self.entries.insert(key, entry);
+        Ok(())
+    }
+
+    pub(crate) fn load_pack(&mut self, pack: ContentPack) -> Result<(), EngineError> {
+        let mut next = self.clone();
+        for entry in pack.entries {
+            next.insert(entry)?;
+        }
+        *self = next;
+        Ok(())
+    }
 }
 
 pub struct ContentRegistryRef<'a> {
@@ -82,17 +130,10 @@ pub struct ContentRegistryMut<'a> {
 
 impl ContentRegistryMut<'_> {
     pub fn insert(&mut self, entry: ContentEntry) -> Result<(), EngineError> {
-        let id = NamespacedId::parse(entry.id())?;
-        let key = id.as_str().to_string();
+        self.registry.insert(entry)
+    }
 
-        if self.registry.entries.contains_key(&key) {
-            return Err(EngineError::validation(
-                "CONTENT_ID_DUPLICATE",
-                format!("content id {key} is already registered"),
-            ));
-        }
-
-        self.registry.entries.insert(key, entry);
-        Ok(())
+    pub fn load_pack(&mut self, pack: ContentPack) -> Result<(), EngineError> {
+        self.registry.load_pack(pack)
     }
 }

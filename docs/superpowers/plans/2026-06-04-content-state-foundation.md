@@ -58,3 +58,28 @@
 - [x] **Step 2: Run `cargo test --workspace` and confirm missing API failure**
 - [x] **Step 3: Implement `ContentRegistryRef`, `OpenRpgCore::content`, `get`, and `ids_for_kind`**
 - [x] **Step 4: Run `cargo test --workspace` and confirm passing tests**
+
+### Task 5: JSON Content Packs
+
+**Files:**
+- Modify: `crates/openrpg-core/src/content.rs`
+- Modify: `crates/openrpg-core/src/engine.rs`
+- Modify: `crates/openrpg-core/src/lib.rs`
+- Test: `crates/openrpg-core/tests/content_state.rs`
+
+- [x] **Step 1: Write failing tests for JSON pack parsing and atomic pack loading**
+- [x] **Step 2: Run `cargo test --workspace` and confirm missing API failure**
+- [x] **Step 3: Implement `ContentPack`, `from_json_str`, `load_pack`, and `OpenRpgCore::load_content_pack`**
+- [x] **Step 4: Run `cargo test --workspace` and confirm passing tests**
+
+### Task 6: Baseplate Verification
+
+**Files:**
+- Create: `crates/openrpg-core/tests/baseplate.rs`
+- Modify: `crates/openrpg-core/src/engine.rs`
+- Modify: `crates/openrpg-core/tests/content_state.rs`
+
+- [x] **Step 1: Write failing baseplate test for content, entities, commands, ticks, RNG, and save/restore**
+- [x] **Step 2: Run `cargo test --workspace` and confirm missing direct JSON loader failure**
+- [x] **Step 3: Implement `OpenRpgCore::load_content_pack_json`**
+- [x] **Step 4: Run `cargo test --workspace` and confirm baseplate passes**

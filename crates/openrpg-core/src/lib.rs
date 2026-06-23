@@ -14,7 +14,7 @@ pub mod rng;
 
 pub use command::{Command, CommandContext, CommandOutcome, CommandResult};
 pub use component::ComponentSchema;
-pub use content::ContentEntry;
+pub use content::{ContentEntry, ContentPack};
 pub use engine::{EngineConfig, EngineError, OpenRPGCore, OpenRpgCore, StateSnapshot, TickResult};
 pub use entity::{Entity, EntityId};
 pub use event::OpenRpgEvent;

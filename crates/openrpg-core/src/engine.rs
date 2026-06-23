@@ -7,7 +7,9 @@ use crate::command::{
     Command, CommandContext, CommandRegistry, CommandRegistryMut, CommandResult, CommandSuccess,
 };
 use crate::component::{ComponentRegistry, ComponentRegistryMut};
-use crate::content::{ContentEntry, ContentRegistry, ContentRegistryMut, ContentRegistryRef};
+use crate::content::{
+    ContentEntry, ContentPack, ContentRegistry, ContentRegistryMut, ContentRegistryRef,
+};
 use crate::entity::{EntityRegistry, EntityRegistryMut, EntityRegistryRef};
 use crate::event::OpenRpgEvent;
 use crate::interceptor::{InterceptorDecision, InterceptorRegistry, InterceptorRegistryMut};
@@ -185,6 +187,14 @@ impl OpenRpgCore {
         ContentRegistryRef {
             registry: &self.content,
         }
+    }
+
+    pub fn load_content_pack(&mut self, pack: ContentPack) -> Result<(), EngineError> {
+        self.content.load_pack(pack)
+    }
+
+    pub fn load_content_pack_json(&mut self, input: &str) -> Result<(), EngineError> {
+        self.load_content_pack(ContentPack::from_json_str(input)?)
     }
 
     pub fn entities(&self) -> EntityRegistryRef<'_> {

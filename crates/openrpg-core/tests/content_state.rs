@@ -1,5 +1,5 @@
 use openrpg_core::{
-    ComponentSchema, ContentEntry, EngineConfig, EntityId, NamespacedId, OpenRpgCore,
+    ComponentSchema, ContentEntry, ContentPack, EngineConfig, EntityId, NamespacedId, OpenRpgCore,
 };
 use serde_json::json;
 
@@ -80,6 +80,103 @@ fn content_registry_exposes_entries_by_id_and_kind() {
 
     let item_ids = content.ids_for_kind("item");
     assert_eq!(item_ids, vec!["mygame:potion_small"]);
+}
+
+#[test]
+fn content_pack_loads_entries_from_json() {
+    let json_pack = r#"
+    {
+      "entries": [
+        {
+          "kind": "item",
+          "id": "mygame:potion_small",
+          "data": { "max_stack": 99 }
+        },
+        {
+          "kind": "ability",
+          "id": "mygame:firebolt",
+          "data": { "cost": { "mana": 8 } }
+        }
+      ]
+    }
+    "#;
+
+    let pack = ContentPack::from_json_str(json_pack).expect("pack should parse");
+    assert_eq!(pack.entries().len(), 2);
+
+    let mut engine = OpenRpgCore::new(EngineConfig::default());
+    engine
+        .load_content_pack(pack)
+        .expect("valid pack should load");
+
+    let content = engine.content();
+    assert_eq!(
+        content.get("mygame:firebolt").unwrap().data()["cost"]["mana"],
+        8
+    );
+    assert_eq!(content.ids_for_kind("item"), vec!["mygame:potion_small"]);
+}
+
+#[test]
+fn content_pack_load_is_atomic_when_validation_fails() {
+    let mut engine = OpenRpgCore::new(EngineConfig::default());
+    engine
+        .content_mut()
+        .insert(ContentEntry::new(
+            "item",
+            "mygame:potion_small",
+            json!({ "max_stack": 99 }),
+        ))
+        .expect("existing entry should register");
+
+    let pack = ContentPack::new(vec![
+        ContentEntry::new("ability", "mygame:firebolt", json!({})),
+        ContentEntry::new("item", "mygame:potion_small", json!({ "max_stack": 10 })),
+    ]);
+
+    let error = engine
+        .load_content_pack(pack)
+        .expect_err("duplicate in pack should fail");
+
+    assert_eq!(error.code(), "CONTENT_ID_DUPLICATE");
+    assert!(engine.content().get("mygame:firebolt").is_none());
+    assert_eq!(
+        engine.content().get("mygame:potion_small").unwrap().data()["max_stack"],
+        99
+    );
+}
+
+#[test]
+fn content_pack_reports_json_parse_errors() {
+    let error = ContentPack::from_json_str("{ not json }").expect_err("invalid json should fail");
+
+    assert_eq!(error.code(), "CONTENT_JSON_INVALID");
+}
+
+#[test]
+fn engine_loads_content_pack_json_directly() {
+    let mut engine = OpenRpgCore::new(EngineConfig::default());
+
+    engine
+        .load_content_pack_json(
+            r#"
+            {
+              "entries": [
+                {
+                  "kind": "item",
+                  "id": "mygame:potion_small",
+                  "data": { "max_stack": 99 }
+                }
+              ]
+            }
+            "#,
+        )
+        .expect("json pack should load");
+
+    assert_eq!(
+        engine.content().get("mygame:potion_small").unwrap().data()["max_stack"],
+        99
+    );
 }
 
 #[test]
