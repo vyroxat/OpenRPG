@@ -7,6 +7,7 @@ pub mod engine;
 pub mod entity;
 pub mod event;
 pub mod interceptor;
+pub mod inventory;
 pub mod module;
 pub mod namespaced_id;
 pub mod patch;
@@ -20,6 +21,7 @@ pub use engine::{EngineConfig, EngineError, OpenRPGCore, OpenRpgCore, StateSnaps
 pub use entity::{Entity, EntityId};
 pub use event::OpenRpgEvent;
 pub use interceptor::InterceptorDecision;
+pub use inventory::{Inventory, ItemStack};
 pub use module::ModuleDescriptor;
 pub use namespaced_id::NamespacedId;
 pub use patch::{PatchOp, StatePatch};

@@ -1,5 +1,5 @@
 use openrpg_core::{
-    Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId,
+    Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId, Inventory,
     ModuleDescriptor, OpenRpgCore, ResourcePool, StatBlock,
 };
 use serde_json::json;
@@ -44,6 +44,9 @@ fn create_hero(engine: &mut OpenRpgCore) -> EntityId {
     engine
         .components_mut()
         .define(ComponentSchema::new("core:resources"));
+    engine
+        .components_mut()
+        .define(ComponentSchema::new("core:inventory"));
 
     engine
         .entities_mut()
@@ -79,6 +82,22 @@ fn attach_mechanics(engine: &mut OpenRpgCore, hero_id: &EntityId) {
             serde_json::to_value(&resources).expect("resources serialize"),
         )
         .expect("resources attach");
+
+    let potion_max_stack = engine.content().get("mygame:potion_small").unwrap().data()["max_stack"]
+        .as_u64()
+        .expect("potion max_stack is numeric") as u32;
+    let mut inventory = Inventory::new();
+    inventory
+        .add_stack("mygame:potion_small", 3, potion_max_stack)
+        .expect("inventory add");
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:inventory",
+            serde_json::to_value(&inventory).expect("inventory serialize"),
+        )
+        .expect("inventory attach");
 }
 
 fn register_frontend_command(engine: &mut OpenRpgCore) {
@@ -122,6 +141,9 @@ fn main() {
     let resources: ResourcePool =
         serde_json::from_value(hero.component("core:resources").unwrap().clone())
             .expect("resources");
+    let inventory: Inventory =
+        serde_json::from_value(hero.component("core:inventory").unwrap().clone())
+            .expect("inventory");
 
     let frame = engine.tick(16);
     println!("tick: {}", frame.tick());
@@ -133,6 +155,10 @@ fn main() {
         stats.final_value("core:strength").unwrap()
     );
     println!("hero health: {}", resources.current("core:health").unwrap());
+    println!(
+        "hero potions: {}",
+        inventory.quantity("mygame:potion_small")
+    );
     println!(
         "potion max stack: {}",
         engine.content().get("mygame:potion_small").unwrap().data()["max_stack"]

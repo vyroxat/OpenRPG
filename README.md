@@ -6,7 +6,7 @@ See `openrpg-spec.md` for full specification.
 
 ## Current Status
 
-OpenRPG currently has a Rust core with module boot, JSON content packs, entity/component storage, command execution, events, patches, deterministic RNG, world values, snapshots, stat blocks, and resource pools. More RPG systems are coming next.
+OpenRPG currently has a Rust core with module boot, JSON content packs, entity/component storage, command execution, events, patches, deterministic RNG, world values, snapshots, stat blocks, resource pools, and stackable inventories. More RPG systems are coming next.
 
 ## Baseplate Debug World
 

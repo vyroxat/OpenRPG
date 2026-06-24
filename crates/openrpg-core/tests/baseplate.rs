@@ -1,5 +1,5 @@
 use openrpg_core::{
-    Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId,
+    Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId, Inventory,
     ModuleDescriptor, OpenRpgCore, ResourcePool, StatBlock,
 };
 use serde_json::json;
@@ -44,6 +44,9 @@ fn create_baseplate_hero(engine: &mut OpenRpgCore) -> EntityId {
     engine
         .components_mut()
         .define(ComponentSchema::new("core:resources"));
+    engine
+        .components_mut()
+        .define(ComponentSchema::new("core:inventory"));
 
     engine
         .entities_mut()
@@ -79,6 +82,22 @@ fn attach_baseplate_mechanics(engine: &mut OpenRpgCore, hero_id: &EntityId) {
             serde_json::to_value(&resources).expect("resources serialize"),
         )
         .expect("resources attach");
+
+    let potion_max_stack = engine.content().get("mygame:potion_small").unwrap().data()["max_stack"]
+        .as_u64()
+        .expect("potion max_stack is numeric") as u32;
+    let mut inventory = Inventory::new();
+    inventory
+        .add_stack("mygame:potion_small", 3, potion_max_stack)
+        .expect("inventory add");
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:inventory",
+            serde_json::to_value(&inventory).expect("inventory serialize"),
+        )
+        .expect("inventory attach");
 }
 
 fn register_baseplate_frontend_command(engine: &mut OpenRpgCore) {
@@ -167,8 +186,19 @@ fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restor
             .clone(),
     )
     .expect("resources restore");
+    let restored_inventory: Inventory = serde_json::from_value(
+        restored
+            .entities()
+            .get(&hero_id)
+            .unwrap()
+            .component("core:inventory")
+            .unwrap()
+            .clone(),
+    )
+    .expect("inventory restore");
     assert_eq!(restored_stats.final_value("core:strength"), Some(12.0));
     assert_eq!(restored_resources.current("core:health"), Some(80.0));
+    assert_eq!(restored_inventory.quantity("mygame:potion_small"), 3);
 }
 
 #[test]
@@ -188,6 +218,14 @@ fn baseplate_snippets_cover_current_debug_world_surface() {
             .get(&hero_id)
             .unwrap()
             .component("core:stats")
+            .is_some()
+    );
+    assert!(
+        engine
+            .entities()
+            .get(&hero_id)
+            .unwrap()
+            .component("core:inventory")
             .is_some()
     );
     assert!(

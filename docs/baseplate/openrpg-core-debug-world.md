@@ -18,6 +18,8 @@ Current baseplate coverage:
 - Stat and resource components attached to an entity.
 - Flat and percent stat modifier resolution.
 - Resource current/max clamping and serialization.
+- Inventory stack data attached to an entity.
+- Content-backed inventory stack limits.
 - Frontend-to-backend command execution.
 - Backend-to-frontend events and patches through `tick`.
 - Deterministic RNG.
@@ -52,9 +54,10 @@ Current example output:
 ```text
 tick: 1
 events for frontend: 1
-patches for frontend: 4
+patches for frontend: 5
 hero: entity:hero
 hero strength: 12
 hero health: 80
+hero potions: 3
 potion max stack: 99
 ```
