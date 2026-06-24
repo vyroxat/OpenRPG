@@ -1,6 +1,6 @@
 use openrpg_core::{
     Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId,
-    ModuleDescriptor, OpenRpgCore,
+    ModuleDescriptor, OpenRpgCore, ResourcePool, StatBlock,
 };
 use serde_json::json;
 
@@ -39,6 +39,13 @@ fn create_baseplate_hero(engine: &mut OpenRpgCore) -> EntityId {
         .components_mut()
         .define(ComponentSchema::new("core:identity"));
     engine
+        .components_mut()
+        .define(ComponentSchema::new("core:stats"));
+    engine
+        .components_mut()
+        .define(ComponentSchema::new("core:resources"));
+
+    engine
         .entities_mut()
         .create_with_component(
             EntityId::new("entity:hero"),
@@ -46,6 +53,32 @@ fn create_baseplate_hero(engine: &mut OpenRpgCore) -> EntityId {
             json!({ "name_key": "character.hero.name" }),
         )
         .expect("hero entity should be created")
+}
+
+fn attach_baseplate_mechanics(engine: &mut OpenRpgCore, hero_id: &EntityId) {
+    let mut stats = StatBlock::new();
+    stats.define_stat("core:strength", 10.0);
+    stats.add_flat_modifier("core:strength", "mygame:ring", 2.0);
+
+    let mut resources = ResourcePool::new();
+    resources.define("core:health", 100.0, 80.0);
+
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:stats",
+            serde_json::to_value(&stats).expect("stats serialize"),
+        )
+        .expect("stats attach");
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:resources",
+            serde_json::to_value(&resources).expect("resources serialize"),
+        )
+        .expect("resources attach");
 }
 
 fn register_baseplate_frontend_command(engine: &mut OpenRpgCore) {
@@ -69,6 +102,7 @@ fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restor
     let mut engine = create_baseplate_engine();
     load_baseplate_content(&mut engine);
     let hero_id = create_baseplate_hero(&mut engine);
+    attach_baseplate_mechanics(&mut engine, &hero_id);
     register_baseplate_frontend_command(&mut engine);
 
     let result = engine
@@ -112,6 +146,29 @@ fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restor
             .unwrap()["name_key"],
         "character.hero.name"
     );
+
+    let restored_stats: StatBlock = serde_json::from_value(
+        restored
+            .entities()
+            .get(&hero_id)
+            .unwrap()
+            .component("core:stats")
+            .unwrap()
+            .clone(),
+    )
+    .expect("stats restore");
+    let restored_resources: ResourcePool = serde_json::from_value(
+        restored
+            .entities()
+            .get(&hero_id)
+            .unwrap()
+            .component("core:resources")
+            .unwrap()
+            .clone(),
+    )
+    .expect("resources restore");
+    assert_eq!(restored_stats.final_value("core:strength"), Some(12.0));
+    assert_eq!(restored_resources.current("core:health"), Some(80.0));
 }
 
 #[test]
@@ -119,11 +176,20 @@ fn baseplate_snippets_cover_current_debug_world_surface() {
     let mut engine = create_baseplate_engine();
     load_baseplate_content(&mut engine);
     let hero_id = create_baseplate_hero(&mut engine);
+    attach_baseplate_mechanics(&mut engine, &hero_id);
     register_baseplate_frontend_command(&mut engine);
 
     assert!(engine.is_booted());
     assert!(engine.content().get("mygame:potion_small").is_some());
     assert!(engine.entities().get(&hero_id).is_some());
+    assert!(
+        engine
+            .entities()
+            .get(&hero_id)
+            .unwrap()
+            .component("core:stats")
+            .is_some()
+    );
     assert!(
         engine
             .execute(Command::new(

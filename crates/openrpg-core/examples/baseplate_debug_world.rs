@@ -1,6 +1,6 @@
 use openrpg_core::{
     Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId,
-    ModuleDescriptor, OpenRpgCore,
+    ModuleDescriptor, OpenRpgCore, ResourcePool, StatBlock,
 };
 use serde_json::json;
 
@@ -39,6 +39,13 @@ fn create_hero(engine: &mut OpenRpgCore) -> EntityId {
         .components_mut()
         .define(ComponentSchema::new("core:identity"));
     engine
+        .components_mut()
+        .define(ComponentSchema::new("core:stats"));
+    engine
+        .components_mut()
+        .define(ComponentSchema::new("core:resources"));
+
+    engine
         .entities_mut()
         .create_with_component(
             EntityId::new("entity:hero"),
@@ -46,6 +53,32 @@ fn create_hero(engine: &mut OpenRpgCore) -> EntityId {
             json!({ "name_key": "character.hero.name" }),
         )
         .expect("hero entity should be created")
+}
+
+fn attach_mechanics(engine: &mut OpenRpgCore, hero_id: &EntityId) {
+    let mut stats = StatBlock::new();
+    stats.define_stat("core:strength", 10.0);
+    stats.add_flat_modifier("core:strength", "mygame:ring", 2.0);
+
+    let mut resources = ResourcePool::new();
+    resources.define("core:health", 100.0, 80.0);
+
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:stats",
+            serde_json::to_value(&stats).expect("stats serialize"),
+        )
+        .expect("stats attach");
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:resources",
+            serde_json::to_value(&resources).expect("resources serialize"),
+        )
+        .expect("resources attach");
 }
 
 fn register_frontend_command(engine: &mut OpenRpgCore) {
@@ -78,14 +111,28 @@ fn main() {
     let mut engine = create_engine();
     load_content(&mut engine);
     let hero_id = create_hero(&mut engine);
+    attach_mechanics(&mut engine, &hero_id);
     register_frontend_command(&mut engine);
     send_frontend_command(&mut engine);
+
+    let entities = engine.entities();
+    let hero = entities.get(&hero_id).expect("hero exists");
+    let stats: StatBlock =
+        serde_json::from_value(hero.component("core:stats").unwrap().clone()).expect("stats");
+    let resources: ResourcePool =
+        serde_json::from_value(hero.component("core:resources").unwrap().clone())
+            .expect("resources");
 
     let frame = engine.tick(16);
     println!("tick: {}", frame.tick());
     println!("events for frontend: {}", frame.events().len());
     println!("patches for frontend: {}", frame.patches().len());
     println!("hero: {hero_id}");
+    println!(
+        "hero strength: {}",
+        stats.final_value("core:strength").unwrap()
+    );
+    println!("hero health: {}", resources.current("core:health").unwrap());
     println!(
         "potion max stack: {}",
         engine.content().get("mygame:potion_small").unwrap().data()["max_stack"]

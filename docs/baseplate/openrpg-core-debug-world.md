@@ -15,6 +15,9 @@ Current baseplate coverage:
 - Engine creation and module boot.
 - JSON content-pack loading.
 - Entity creation with component data.
+- Stat and resource components attached to an entity.
+- Flat and percent stat modifier resolution.
+- Resource current/max clamping and serialization.
 - Frontend-to-backend command execution.
 - Backend-to-frontend events and patches through `tick`.
 - Deterministic RNG.
@@ -42,4 +45,16 @@ When adding a backend feature, add it to the baseplate once it has a stable publ
 cargo run -p openrpg-core --example baseplate_debug_world
 ```
 
-Expected behavior: the example boots the engine, loads content, creates a hero, sends a command, advances a tick, and prints frontend-facing event/patch counts plus queried content.
+Expected behavior: the example boots the engine, loads content, creates a hero, attaches stats/resources, sends a command, advances a tick, and prints frontend-facing event/patch counts plus queried content and hero mechanics values.
+
+Current example output:
+
+```text
+tick: 1
+events for frontend: 1
+patches for frontend: 4
+hero: entity:hero
+hero strength: 12
+hero health: 80
+potion max stack: 99
+```

@@ -117,4 +117,36 @@ impl EntityRegistryMut<'_> {
 
         Ok(id)
     }
+
+    pub fn set_component(
+        &mut self,
+        entity_id: &EntityId,
+        component_id: &str,
+        component: Value,
+    ) -> Result<(), EngineError> {
+        if !self.components.contains(component_id) {
+            return Err(EngineError::validation(
+                "UNKNOWN_COMPONENT",
+                format!("component {component_id} has not been registered"),
+            ));
+        }
+
+        let entity = self.registry.entities.get_mut(entity_id).ok_or_else(|| {
+            EngineError::validation(
+                "ENTITY_UNKNOWN",
+                format!("entity {entity_id} does not exist"),
+            )
+        })?;
+        let previous = entity.component(component_id).cloned();
+        entity.set_component(component_id, component.clone());
+        let path = format!("/entities/{entity_id}/components/{component_id}");
+        match previous {
+            Some(previous) => {
+                self.patches
+                    .push(StatePatch::replace(path, component, Some(previous)))
+            }
+            None => self.patches.push(StatePatch::add(path, component)),
+        }
+        Ok(())
+    }
 }

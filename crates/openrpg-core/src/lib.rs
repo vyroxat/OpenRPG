@@ -11,6 +11,7 @@ pub mod module;
 pub mod namespaced_id;
 pub mod patch;
 pub mod rng;
+pub mod stats;
 
 pub use command::{Command, CommandContext, CommandOutcome, CommandResult};
 pub use component::ComponentSchema;
@@ -23,3 +24,6 @@ pub use module::ModuleDescriptor;
 pub use namespaced_id::NamespacedId;
 pub use patch::{PatchOp, StatePatch};
 pub use rng::DeterministicRng;
+pub use stats::{
+    ResourcePool, ResourceValue, StatBlock, StatModifier, StatModifierKind, StatValue,
+};
