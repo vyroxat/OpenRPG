@@ -20,6 +20,8 @@ Current baseplate coverage:
 - Resource current/max clamping and serialization.
 - Inventory stack data attached to an entity.
 - Content-backed inventory stack limits.
+- Equipment slot data attached to an entity.
+- Equipment stat modifiers applied to the hero stat block.
 - Frontend-to-backend command execution.
 - Backend-to-frontend events and patches through `tick`.
 - Deterministic RNG.
@@ -56,8 +58,9 @@ tick: 1
 events for frontend: 1
 patches for frontend: 5
 hero: entity:hero
-hero strength: 12
+hero strength: 15
 hero health: 80
 hero potions: 3
+hero main hand: mygame:iron_sword
 potion max stack: 99
 ```

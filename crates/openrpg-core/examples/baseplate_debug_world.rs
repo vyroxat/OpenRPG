@@ -1,6 +1,6 @@
 use openrpg_core::{
-    Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId, Inventory,
-    ModuleDescriptor, OpenRpgCore, ResourcePool, StatBlock,
+    Command, CommandOutcome, CommandResult, ComponentSchema, EngineConfig, EntityId, Equipment,
+    EquipmentDefinition, Inventory, ModuleDescriptor, OpenRpgCore, ResourcePool, StatBlock,
 };
 use serde_json::json;
 
@@ -21,6 +21,14 @@ fn load_content(engine: &mut OpenRpgCore) {
                   "kind": "item",
                   "id": "mygame:potion_small",
                   "data": { "max_stack": 99, "tags": ["potion", "healing"] }
+                },
+                {
+                  "kind": "equipment",
+                  "id": "mygame:iron_sword",
+                  "data": {
+                    "slots": ["main_hand"],
+                    "stat_modifiers": [{ "stat": "core:strength", "flat": 3.0 }]
+                  }
                 },
                 {
                   "kind": "ability",
@@ -47,6 +55,9 @@ fn create_hero(engine: &mut OpenRpgCore) -> EntityId {
     engine
         .components_mut()
         .define(ComponentSchema::new("core:inventory"));
+    engine
+        .components_mut()
+        .define(ComponentSchema::new("core:equipment"));
 
     engine
         .entities_mut()
@@ -62,6 +73,15 @@ fn attach_mechanics(engine: &mut OpenRpgCore, hero_id: &EntityId) {
     let mut stats = StatBlock::new();
     stats.define_stat("core:strength", 10.0);
     stats.add_flat_modifier("core:strength", "mygame:ring", 2.0);
+
+    let iron_sword = EquipmentDefinition::new("mygame:iron_sword", ["main_hand"])
+        .with_flat_modifier("core:strength", 3.0);
+    let mut equipment = Equipment::new();
+    equipment.define_slot("main_hand");
+    equipment
+        .equip(&iron_sword, "main_hand")
+        .expect("sword equip");
+    equipment.apply_stat_modifiers(&mut stats, [&iron_sword]);
 
     let mut resources = ResourcePool::new();
     resources.define("core:health", 100.0, 80.0);
@@ -98,6 +118,14 @@ fn attach_mechanics(engine: &mut OpenRpgCore, hero_id: &EntityId) {
             serde_json::to_value(&inventory).expect("inventory serialize"),
         )
         .expect("inventory attach");
+    engine
+        .entities_mut()
+        .set_component(
+            hero_id,
+            "core:equipment",
+            serde_json::to_value(&equipment).expect("equipment serialize"),
+        )
+        .expect("equipment attach");
 }
 
 fn register_frontend_command(engine: &mut OpenRpgCore) {
@@ -144,6 +172,9 @@ fn main() {
     let inventory: Inventory =
         serde_json::from_value(hero.component("core:inventory").unwrap().clone())
             .expect("inventory");
+    let equipment: Equipment =
+        serde_json::from_value(hero.component("core:equipment").unwrap().clone())
+            .expect("equipment");
 
     let frame = engine.tick(16);
     println!("tick: {}", frame.tick());
@@ -158,6 +189,10 @@ fn main() {
     println!(
         "hero potions: {}",
         inventory.quantity("mygame:potion_small")
+    );
+    println!(
+        "hero main hand: {}",
+        equipment.equipped_item("main_hand").unwrap()
     );
     println!(
         "potion max stack: {}",
