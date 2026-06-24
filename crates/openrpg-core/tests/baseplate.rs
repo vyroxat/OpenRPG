@@ -4,12 +4,14 @@ use openrpg_core::{
 };
 use serde_json::json;
 
-#[test]
-fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restore() {
+fn create_baseplate_engine() -> OpenRpgCore {
     let mut engine = OpenRpgCore::new(EngineConfig::default().with_seed(7));
     engine.register_module(ModuleDescriptor::new("openrpg-core", "0.1.0"));
     engine.boot().expect("core module should boot");
+    engine
+}
 
+fn load_baseplate_content(engine: &mut OpenRpgCore) {
     engine
         .load_content_pack_json(
             r#"
@@ -30,19 +32,23 @@ fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restor
             "#,
         )
         .expect("baseplate content should load");
+}
 
+fn create_baseplate_hero(engine: &mut OpenRpgCore) -> EntityId {
     engine
         .components_mut()
         .define(ComponentSchema::new("core:identity"));
-    let hero_id = engine
+    engine
         .entities_mut()
         .create_with_component(
             EntityId::new("entity:hero"),
             "core:identity",
             json!({ "name_key": "character.hero.name" }),
         )
-        .expect("hero entity should be created");
+        .expect("hero entity should be created")
+}
 
+fn register_baseplate_frontend_command(engine: &mut OpenRpgCore) {
     engine
         .commands_mut()
         .register("world.setFlag", |ctx, command| {
@@ -56,6 +62,14 @@ fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restor
 
             Ok(CommandOutcome::default())
         });
+}
+
+#[test]
+fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restore() {
+    let mut engine = create_baseplate_engine();
+    load_baseplate_content(&mut engine);
+    let hero_id = create_baseplate_hero(&mut engine);
+    register_baseplate_frontend_command(&mut engine);
 
     let result = engine
         .execute(Command::new(
@@ -97,5 +111,25 @@ fn baseplate_core_flow_runs_with_content_entities_commands_ticks_and_save_restor
             .component("core:identity")
             .unwrap()["name_key"],
         "character.hero.name"
+    );
+}
+
+#[test]
+fn baseplate_snippets_cover_current_debug_world_surface() {
+    let mut engine = create_baseplate_engine();
+    load_baseplate_content(&mut engine);
+    let hero_id = create_baseplate_hero(&mut engine);
+    register_baseplate_frontend_command(&mut engine);
+
+    assert!(engine.is_booted());
+    assert!(engine.content().get("mygame:potion_small").is_some());
+    assert!(engine.entities().get(&hero_id).is_some());
+    assert!(
+        engine
+            .execute(Command::new(
+                "world.setFlag",
+                json!({ "key": "debug.snippet", "value": "covered" }),
+            ))
+            .is_ok()
     );
 }
